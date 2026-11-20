@@ -9,17 +9,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
-      - name: Unzip and apply updated files
+      - name: Unzip and apply updates
         run: |
           unzip -q UsageTracker.zip
           cp -f *.kt UsageTracker/app/src/main/java/com/example/usagetracker/ 2>/dev/null || true
+          for f in update*.zip; do
+            [ -e "$f" ] || continue
+            unzip -oq "$f" -d UsageTracker
+          done
       - run: gradle assembleDebug --no-daemon
         working-directory: UsageTracker
       - name: Save APK in repo
