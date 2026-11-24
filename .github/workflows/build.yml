@@ -20,12 +20,24 @@ jobs:
         run: |
           unzip -q UsageTracker.zip
           cp -f *.kt UsageTracker/app/src/main/java/com/example/usagetracker/ 2>/dev/null || true
-          for f in update*.zip; do
-            [ -e "$f" ] || continue
+          for f in $(ls update*.zip 2>/dev/null | sort -V); do
             unzip -oq "$f" -d UsageTracker
           done
-      - run: gradle assembleDebug --no-daemon
+      - name: Build
         working-directory: UsageTracker
+        run: |
+          set -o pipefail
+          gradle assembleDebug --no-daemon --console=plain 2>&1 | tee build.log
+      - name: Show errors
+        if: failure()
+        working-directory: UsageTracker
+        run: |
+          {
+            echo '### Compile errors'
+            echo '```'
+            grep -E '^e: |What went wrong' -A2 build.log | head -80 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Save APK in repo
         run: |
           cp UsageTracker/app/build/outputs/apk/debug/app-debug.apk app-debug.apk
